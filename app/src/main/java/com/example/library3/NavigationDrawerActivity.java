@@ -2,22 +2,36 @@ package com.example.library3;
 
 import android.content.Intent;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.Menu;
+import android.widget.ImageView;
+import android.widget.TextView;
 import android.widget.Toast;
 
 
+import com.example.library3.ui.home.Card;
+import com.example.library3.ui.home.Users;
+import com.example.library3.ui.home.UsersAdapter;
 import com.google.android.gms.auth.api.signin.GoogleSignIn;
 import com.google.android.gms.auth.api.signin.GoogleSignInClient;
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions;
 import com.google.android.gms.tasks.OnCompleteListener;
+import com.google.android.gms.tasks.OnFailureListener;
+import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.gms.tasks.Task;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.android.material.snackbar.Snackbar;
 import com.google.android.material.navigation.NavigationView;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
+import com.google.firebase.firestore.DocumentReference;
+import com.google.firebase.firestore.DocumentSnapshot;
+import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.firestore.QueryDocumentSnapshot;
+import com.google.firebase.firestore.QuerySnapshot;
+import com.squareup.picasso.Picasso;
 
 import androidx.annotation.NonNull;
 import androidx.navigation.NavController;
@@ -28,9 +42,16 @@ import androidx.drawerlayout.widget.DrawerLayout;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
 
+import java.util.ArrayList;
+import java.util.List;
+
 public class NavigationDrawerActivity extends AppCompatActivity {
     private FirebaseAuth mAuth;
     private AppBarConfiguration mAppBarConfiguration;
+    private List<Users> usersList; //declare variable to store users
+    private UsersAdapter uadapter;
+    private Boolean exist=false;
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -50,7 +71,7 @@ public class NavigationDrawerActivity extends AppCompatActivity {
         NavigationView navigationView = findViewById(R.id.nav_view);
         // Passing each menu ID as a set of Ids because each
         // menu should be considered as top level destinations.
-        mAppBarConfiguration = new AppBarConfiguration.Builder(
+        mAppBarConfiguration = new AppBarConfiguration.Builder(  //this is responsible for switching tabs like home gallery etc.
                 R.id.nav_home, R.id.nav_gallery, R.id.nav_slideshow)
                 .setDrawerLayout(drawer)
                 .build();
@@ -61,7 +82,79 @@ public class NavigationDrawerActivity extends AppCompatActivity {
         // Get the Intent that started this activity and extract the string
 
         FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
-        Toast.makeText(this,user.getDisplayName(), Toast.LENGTH_LONG).show();
+        //Toast.makeText(this,user.getDisplayName(), Toast.LENGTH_SHORT).show();
+        //Toast.makeText(this,user.getPhotoUrl()+"", Toast.LENGTH_SHORT).show();
+
+        View hView =  navigationView.inflateHeaderView(R.layout.nav_header_main);
+        ImageView imgvw = (ImageView)hView.findViewById(R.id.imageView);
+        TextView tv1 = (TextView)hView.findViewById(R.id.textView1);
+        Picasso.get().load(user.getPhotoUrl()).resize(200, 200).centerCrop().into(imgvw);
+        tv1.setText(user.getDisplayName());
+        usersList=new ArrayList<>(); //initialize empy array list
+        checkUserExist(user);
+
+
+
+    }
+
+    public void checkUserExist(final FirebaseUser user) {
+
+//        FirebaseFirestore db = FirebaseFirestore.getInstance();
+//        Users u=new Users(user.getDisplayName(),user.getEmail());
+//        db.collection("non-premium-users").add(u).addOnSuccessListener(new OnSuccessListener<DocumentReference>() {
+//            @Override
+//            public void onSuccess(DocumentReference documentReference) {
+//                Log.d("navdrawactivity","DocumentSnapshot added with ID: " + documentReference.getId());
+//            }
+//        }).addOnFailureListener(new OnFailureListener() {
+//            @Override
+//            public void onFailure(@NonNull Exception e) {
+//                Log.w("navdrawactivity", "Error adding document", e);
+//            }
+//        });
+
+        final FirebaseFirestore db = FirebaseFirestore.getInstance();
+
+        db.collection("non-premium-users")//db.collection("non-premium-users")
+                .get()
+                .addOnSuccessListener(new OnSuccessListener<QuerySnapshot>() {
+                    @Override
+                    public void onSuccess(QuerySnapshot queryDocumentSnapshots) {
+                        if(!queryDocumentSnapshots.isEmpty()){
+                            List<DocumentSnapshot> list=queryDocumentSnapshots.getDocuments();
+                            for(DocumentSnapshot d:list){
+                                Users u=d.toObject(Users.class);
+                                usersList.add(u);
+                                //Toast.makeText(getApplicationContext(),u.getEmail(),Toast.LENGTH_SHORT).show();
+                            }
+                        }
+                        List<String> emails=new ArrayList<String>();
+                        for (Users i : usersList) {
+                            Toast.makeText(getApplicationContext(),"i have"+i.getEmail(),Toast.LENGTH_SHORT).show();
+                            emails.add(i.getEmail());
+                        }
+                        if (!emails.contains(user.getEmail())){
+                            System.out.println("user not exit so adding to db");
+                            Users u=new Users(user.getDisplayName(),user.getEmail(),user.getUid());
+                            db.collection("non-premium-users").add(u).addOnSuccessListener(new OnSuccessListener<DocumentReference>() {
+                                @Override
+                                public void onSuccess(DocumentReference documentReference) {
+                                    //og.d("navdrawactivity","DocumentSnapshot added with ID: " + documentReference.getId());
+                                    Toast.makeText(getApplicationContext(),"welcome new user",Toast.LENGTH_SHORT).show();
+                                }
+                            }).addOnFailureListener(new OnFailureListener() {
+                                @Override
+                                public void onFailure(@NonNull Exception e) {
+                                    Log.w("navdrawactivity", "Error adding document", e);
+                                }
+                            });
+                        }
+
+                    }
+                });
+
+
+
 
     }
 
@@ -80,13 +173,10 @@ public class NavigationDrawerActivity extends AppCompatActivity {
     }
 
     @Override
-    public boolean onOptionsItemSelected(@NonNull MenuItem item) {
+    public boolean onOptionsItemSelected(@NonNull MenuItem item) {  //responsible for opening menubar option
         switch (item.getItemId()) {
             case R.id.action_signout:
                 signOut();
-                // Configure Google Sign In
-
-
                 return true;
             default:
                 return super.onOptionsItemSelected(item);
