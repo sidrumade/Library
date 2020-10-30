@@ -38,8 +38,8 @@ public class AboutViewModel extends ViewModel {
         DevEmail = new MutableLiveData<>();
         DevContact = new MutableLiveData<>();
 
-        Devname.setValue("Developer: Mayur Nagesh Satam");
-        DevEmail.setValue("Email: mayursatam6327@gmail.com");
-        DevContact.setValue("Contact: 919892320172");
+        Devname.setValue("Developer: Mayur Nagesh Satam"); //siddhesh damodar rumade
+        DevEmail.setValue("Email: mayursatam6327@gmail.com"); //siddhesh.rumade.5@gmail.com
+        DevContact.setValue("Contact: 919892320172");// 918097450963
     }
 }

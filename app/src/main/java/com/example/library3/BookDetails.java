@@ -11,6 +11,7 @@ import android.os.Bundle;
 import android.os.Environment;
 import android.util.Log;
 import android.view.View;
+import android.view.animation.AlphaAnimation;
 import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.ProgressBar;
@@ -47,7 +48,7 @@ public class BookDetails extends AppCompatActivity {
     private FirebaseFirestore db;
     private Boolean r = false;
     private Boolean w = false;
-
+    private AlphaAnimation buttonClick = new AlphaAnimation(1F, 0.8F);
 
     // Create a reference to a file from a Google Cloud Storage URI
     private StorageReference gsReference,gsReferencebook;
@@ -110,10 +111,15 @@ public class BookDetails extends AppCompatActivity {
                                     Users u = d.toObject(Users.class);
                                     //Toast.makeText(getApplicationContext(), u.getEmail().equals(user.getEmail()) + " got", Toast.LENGTH_SHORT).show();
                                     if (user.getEmail().equals(u.getEmail()) == true) {
-                                        Toast.makeText(getApplicationContext(), "you are premium so removing restrictions", Toast.LENGTH_SHORT).show();
+                                        //Toast.makeText(getApplicationContext(), "you are premium so removing restrictions", Toast.LENGTH_SHORT).show();
                                         butread.setEnabled(true);
                                         butdownload.setEnabled(true);
                                         break;
+                                    }
+                                    else{
+                                        Toast.makeText(getApplicationContext(),"Premium User Access Only", Toast.LENGTH_SHORT).show();
+                                        Intent intent=new Intent(getApplicationContext(),PaymentActivity.class);
+                                        startActivity(intent);
                                     }
                                 }
                             }
@@ -124,9 +130,15 @@ public class BookDetails extends AppCompatActivity {
         butdownload.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
+                v.startAnimation(buttonClick);
                 //snakbar shows when gust try to access premium for gust users
                 if (extras.getString("book_type").equals("Premium")) {
-                    Toast.makeText(getApplicationContext(), "Premium User Access", Toast.LENGTH_SHORT).show();
+                    //Toast.makeText(getApplicationContext(), "Premium User Access", Toast.LENGTH_SHORT).show();
+                    r = isReadStoragePermissionGranted();
+                    w = isWriteStoragePermissionGranted();
+                    if(r.equals(true) && w.equals(true)){
+                        downloadPdfFile();
+                    }
                 } else {
                     r = isReadStoragePermissionGranted();
                     w = isWriteStoragePermissionGranted();
@@ -153,7 +165,7 @@ public class BookDetails extends AppCompatActivity {
             @Override
             public void onClick(View v) {
 
-
+                v.startAnimation(buttonClick);
                 if (r.equals(true) && w.equals(true)) { //check for permission
                     File applictionFile = new File(Environment.getExternalStoragePublicDirectory(
                             Environment.DIRECTORY_DOWNLOADS) + "/" + extras.getString("book_name") + ".pdf");
